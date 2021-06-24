@@ -1,0 +1,12 @@
+Description: Test CFN Non Portable
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 'psdtest1312'
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: 'PSD4Test_Dev'
+      InstanceType: 't2.micro'
+      ImageId: 'ami-0aeeebd8d2ab47354'
