@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template creates an IAM user 'PSD' 
+  And Permission Policy to access S3 for user PSD.
+Parameters:
+  psdpassword:
+    NoEcho: true
+    Description: IAM User psd Password
+    Type: String
+    MinLength: 4
+    MaxLength: 30
+Resources:
+  psd:
+    Type: AWS::IAM::User
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/IAMUserChangePassword
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+        - !Ref policy  
+      LoginProfile:
+        Password: !Ref psdpassword
+        PasswordResetRequired: "false"
+  policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      Description: Allow access to all S3 buckets and RoleAssume
+      ManagedPolicyName: S3AndRoleAssume
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 's3:*'
+            Resource: '*' 
+          - Effect: Allow
+            Action: 'sts:AssumeRole'
+            Resource: '*'
+  

@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Create S3 Buckets psdbucket25821a1, psdbucket25821a2 and psdbucket25821a3
+  IAM Role to access the buckets. And policy for role (special for 3rd bucket policy)
+  Take param input for the account ID to provide access
+Parameters:
+  AccountToTrust:
+    Description: PSDMasterAccountID
+    Type: String
+Resources:
+  psdbucket25821a1:
+    Type:  AWS::S3::Bucket
+  psdbucket25821a2:
+    Type:  AWS::S3::Bucket
+  psdbucket25821a3:
+    Type:  AWS::S3::Bucket
+  CrossAccountS3Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+              - !Join ["", ["arn:aws:iam::", !Ref AccountToTrust, ":root"]]
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 's3:ListAllMyBuckets'
+                Resource: 'arn:aws:s3:::*'
+              - Effect: Allow
+                Action: ['s3:ListBucket', 's3:GetBucketLocation']
+                Resource: !GetAtt psdbucket25821a3.Arn
+              - Effect: Allow
+                Action: ['s3:GetObject', 's3:PutObject']
+                Resource: !Join ["", [!GetAtt psdbucket25821a3.Arn, "/*"]]

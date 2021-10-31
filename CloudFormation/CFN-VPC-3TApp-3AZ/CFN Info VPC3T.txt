@@ -1,0 +1,4 @@
+1. Training Account - Using CFN Template (CFN-Create-VPC-3AZ.yaml) Create 1 VPC with 2 private and 1 public subnet spread across in 3 AZ. VPC CIDR - 10.16.0.0/16. Apart from these 3 subnet, one more Reserve subnet will be provisioned. Apart from IPV4, IPV6 IPs are also provisioned.   
+2. Same Account - Using CFN Template (CFN-Create-NATGateway.yaml), create 3 NATGW for the 3 public subnets. NATGW will in-turn require EIPs. 
+3. Share the VPC using RAM. Select the accounts to share the subnets. 
+4. Go the shared Account and create EC2 and install wordpress on apache. 
