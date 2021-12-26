@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "This is the basic Template to create S3 bucket & EC2 + With Parameters"
+Description: "This is the basic Template to create EC2 + Parameters + !Ref + !GetAtt"
 Parameters:
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instance

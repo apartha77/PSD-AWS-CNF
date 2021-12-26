@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description:  17Nov21 - PSD - Create Basic VPC for 3T App in 1 Subnet - Public VPC with IGW
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: PSD-BasicVPC
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+      - Key: Name
+        Value: psd-basicvpc1-igw
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  RouteTableWeb: 
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: psd-basicvpc1-rt-web
+  RouteTableWebDefaultIPv4: 
+    Type: 'AWS::EC2::Route'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId:
+        Ref: RouteTableWeb
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId:
+        Ref: InternetGateway
+  RouteTableAssociationWebA:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetWEBA
+      RouteTableId:
+        Ref: RouteTableWeb
+  
+  SubnetWEBA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.20.0.0/19
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: sn-web-A
+
+  SubnetAppA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.20.32.0/19
+      Tags:
+        - Key: Name
+          Value: sn-app-A
+
+  SubnetDBA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.20.64.0/19
+      Tags:
+        - Key: Name
+          Value: sn-db-A
+  
+  DefaultInstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Enable SSH access via port 22 IPv4
+      SecurityGroupIngress: 
+        - Description: 'Allow SSH IPv4 IN'
+          IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+        - Description: 'Allow HTTP IPv4 IN'
+          IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+  DefaultInstanceSecurityGroupSelfReferenceRule:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      GroupId: !Ref DefaultInstanceSecurityGroup
+      IpProtocol: 'tcp'
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !Ref DefaultInstanceSecurityGroup
+Outputs:
+  psdvpc1:
+    Description: PSD VPC1_ID
+    Value: !Ref VPC
+    Export: 
+      Name: psd-vpc1
+  psdvpc1subnetweba:
+    Description: PSD VPC1 SubnetWEBA
+    Value: !Ref SubnetWEBA
+    Export:
+      Name: psd-vpc1-subnet-weba
+  psdvpc1subnetappa:
+    Description: PSD VPC1 SubnetAppA
+    Value: !Ref SubnetAppA
+    Export:
+      Name: psd-vpc1-subnet-appa
+  psdvpc1subnetdba:
+    Description: PSD VPC1 SubnetDBA
+    Value: !Ref SubnetDBA
+    Export:
+      Name: psd-vpc1-subnet-dba
+  psdvpc1defaultinstancesg:
+    Description: PSD VPC1 Default Instance SecurityGroup
+    Value: !Ref DefaultInstanceSecurityGroup

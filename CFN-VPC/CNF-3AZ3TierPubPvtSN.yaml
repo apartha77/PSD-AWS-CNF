@@ -1,7 +1,4 @@
-AWSTemplateFormatVersion: 2010-09-09
-Description:  PSD - Create VPC for 3T App in 3subnet + 1 reserve (pvt-subnet - DB, APP) & pub-Subnet WEB Tiers in 3 AZ. Make it a Shared VPC using RAM
-Metadata:
-  LICENSE: Apache License Version 2.0
+Description: Template to Create 3AZ-3Tier-PublicnPrivate-SN-VPC 
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -11,7 +8,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: PSD-SharedVPC
+          Value: PSDVPC
   IPv6CidrBlock:
     Type: AWS::EC2::VPCCidrBlock
     Properties:
@@ -22,104 +19,56 @@ Resources:
     Properties:
       Tags:
       - Key: Name
-        Value: psd-vpc1-igw
+        Value: PSD-IGW
   InternetGatewayAttachment:
     Type: 'AWS::EC2::VPCGatewayAttachment'
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-  RouteTableWeb: 
+  RTPub: 
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
       - Key: Name
-        Value: psd-vpc1-rt-web
-  RouteTableWebDefaultIPv4: 
+        Value: PSD-vpc-rt-pub
+  RTPubDefaultIPv4: 
     Type: 'AWS::EC2::Route'
     DependsOn: InternetGatewayAttachment
     Properties:
       RouteTableId:
-        Ref: RouteTableWeb
+        Ref: RTPub
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId:
         Ref: InternetGateway
-  RouteTableWebDefaultIPv6: 
+  RTPubDefaultIPv6: 
     Type: 'AWS::EC2::Route'
     DependsOn: InternetGatewayAttachment
     Properties:
       RouteTableId:
-        Ref: RouteTableWeb
+        Ref: RTPub
       DestinationIpv6CidrBlock: '::/0'
       GatewayId:
         Ref: InternetGateway
-  RouteTableAssociationWebA:
+  RTAssociationPubA:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref SubnetWEBA
+      SubnetId: !Ref SNPUBA
       RouteTableId:
-        Ref: RouteTableWeb
-  RouteTableAssociationWebB:
+        Ref: RTPub
+  RTAssociationPubB:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref SubnetWEBB
+      SubnetId: !Ref SNPUBB
       RouteTableId:
-        Ref: RouteTableWeb
-  RouteTableAssociationWebC:
+        Ref: RTPub
+  RTAssociationPubC:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref SubnetWEBC
+      SubnetId: !Ref SNPUBC
       RouteTableId:
-        Ref: RouteTableWeb
-  SubnetReservedA:
-    Type: AWS::EC2::Subnet
-    DependsOn: IPv6CidrBlock
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 0, !GetAZs '' ]
-      CidrBlock: 10.16.0.0/20
-      AssignIpv6AddressOnCreation: true
-      Ipv6CidrBlock: 
-        Fn::Sub:
-          - "${VpcPart}${SubnetPart}"
-          - SubnetPart: '00::/64'
-            VpcPart: !Select [ 0, !Split [ '00::/56', !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks ]]]
-      Tags:
-        - Key: Name
-          Value: sn-reserved-A
-  SubnetReservedB:
-    Type: AWS::EC2::Subnet
-    DependsOn: IPv6CidrBlock
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 1, !GetAZs '' ]
-      CidrBlock: 10.16.64.0/20
-      AssignIpv6AddressOnCreation: true
-      Ipv6CidrBlock: 
-        Fn::Sub:
-          - "${VpcPart}${SubnetPart}"
-          - SubnetPart: '04::/64'
-            VpcPart: !Select [ 0, !Split [ '00::/56', !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks ]]]
-      Tags:
-        - Key: Name
-          Value: sn-reserved-B
-  SubnetReservedC:
-    Type: AWS::EC2::Subnet
-    DependsOn: IPv6CidrBlock
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 2, !GetAZs '' ]
-      CidrBlock: 10.16.128.0/20
-      AssignIpv6AddressOnCreation: true
-      Ipv6CidrBlock: 
-        Fn::Sub:
-          - "${VpcPart}${SubnetPart}"
-          - SubnetPart: '08::/64'
-            VpcPart: !Select [ 0, !Split [ '00::/56', !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks ]]]
-      Tags:
-        - Key: Name
-          Value: sn-reserved-C
-  SubnetDBA:
+        Ref: RTPub
+  SNDBA:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -135,7 +84,7 @@ Resources:
       Tags:
         - Key: Name
           Value: sn-db-A
-  SubnetDBB:
+  SNDBB:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -151,7 +100,7 @@ Resources:
       Tags:
         - Key: Name
           Value: sn-db-B
-  SubnetDBC:
+  SNDBC:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -167,7 +116,7 @@ Resources:
       Tags:
         - Key: Name
           Value: sn-db-C
-  SubnetAPPA:
+  SNAPPA:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -183,7 +132,7 @@ Resources:
       Tags:
         - Key: Name
           Value: sn-app-A
-  SubnetAPPB:
+  SNAPPB:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -199,7 +148,7 @@ Resources:
       Tags:
         - Key: Name
           Value: sn-app-B
-  SubnetAPPC:
+  SNAPPC:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -215,7 +164,7 @@ Resources:
       Tags:
         - Key: Name
           Value: sn-app-C
-  SubnetWEBA:
+  SNPUBA:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -230,8 +179,8 @@ Resources:
             VpcPart: !Select [ 0, !Split [ '00::/56', !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks ]]]
       Tags:
         - Key: Name
-          Value: sn-web-A
-  SubnetWEBB:
+          Value: sn-pub-A
+  SNPUBB:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -246,8 +195,8 @@ Resources:
             VpcPart: !Select [ 0, !Split [ '00::/56', !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks ]]]
       Tags:
         - Key: Name
-          Value: sn-web-B
-  SubnetWEBC:
+          Value: sn-pub-B
+  SNPUBC:
     Type: AWS::EC2::Subnet
     DependsOn: IPv6CidrBlock
     Properties:
@@ -262,22 +211,22 @@ Resources:
             VpcPart: !Select [ 0, !Split [ '00::/56', !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks ]]]
       Tags:
         - Key: Name
-          Value: sn-web-C
-  IPv6WorkaroundSubnetWEBA:
+          Value: sn-pub-C
+  IPv6WorkaroundSubnetPUBA:
     Type: Custom::SubnetModify
     Properties:
       ServiceToken: !GetAtt IPv6WorkaroundLambda.Arn
-      SubnetId: !Ref SubnetWEBA
-  IPv6WorkaroundSubnetWEBB:
+      SubnetId: !Ref SNPUBA
+  IPv6WorkaroundSubnetPUBB:
     Type: Custom::SubnetModify
     Properties:
       ServiceToken: !GetAtt IPv6WorkaroundLambda.Arn
-      SubnetId: !Ref SubnetWEBB
-  IPv6WorkaroundSubnetWEBC:
+      SubnetId: !Ref SNPUBB
+  IPv6WorkaroundSubnetPUBC:
     Type: Custom::SubnetModify
     Properties:
       ServiceToken: !GetAtt IPv6WorkaroundLambda.Arn
-      SubnetId: !Ref SubnetWEBC
+      SubnetId: !Ref SNPUBC
   IPv6WorkaroundRole:
     Type: AWS::IAM::Role
     Properties:
@@ -337,101 +286,69 @@ Resources:
       Runtime: python2.7
       Role: !GetAtt IPv6WorkaroundRole.Arn
       Timeout: 30
-  DefaultInstanceSecurityGroup:
+  SGWordpress:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       VpcId: !Ref VPC
-      GroupDescription: Enable SSH access via port 22 IPv4 & v6
+      GroupDescription: Control access to Wordpress Instance(s)
       SecurityGroupIngress: 
-        - Description: 'Allow SSH IPv4 IN'
-          IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
-          CidrIp: '0.0.0.0/0'
         - Description: 'Allow HTTP IPv4 IN'
           IpProtocol: tcp
           FromPort: '80'
           ToPort: '80'
           CidrIp: '0.0.0.0/0'
-        - Description: 'Allow SSH IPv6 IN'
-          IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
-          CidrIpv6: ::/0
-  DefaultInstanceSecurityGroupSelfReferenceRule:
-    Type: "AWS::EC2::SecurityGroupIngress"
+  SGDatabase:
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupId: !Ref DefaultInstanceSecurityGroup
-      IpProtocol: 'tcp'
-      FromPort: '0'
-      ToPort: '65535'
-      SourceSecurityGroupId: !Ref DefaultInstanceSecurityGroup
-Outputs:
-  psdvpc1:
-    Description: PSD VPC1_ID
-    Value: !Ref VPC
-    Export: 
-      Name: psd-vpc1
-  psdvpc1subnetweba:
-    Description: PSD VPC1 SubnetWEBA
-    Value: !Ref SubnetWEBA
-    Export:
-      Name: psd-vpc1-subnet-weba
-  psdvpc1subnetwebb:
-    Description: PSD VPC1 SubnetWEBB
-    Value: !Ref SubnetWEBB
-    Export:
-      Name: psd-vpc1-subnet-webb
-  psdvpc1subnetwebc:
-    Description: PSD VPC1 SubnetWEBC
-    Value: !Ref SubnetWEBC
-    Export:
-      Name: psd-vpc1-subnet-webc
-  psdvpc1subnetappa:
-    Description: PSD VPC1 SubnetAPPA
-    Value: !Ref SubnetAPPA
-    Export:
-      Name: psd-vpc1-subnet-appa
-  psdvpc1subnetappb:
-    Description: PSD VPC1 SubnetAPPB
-    Value: !Ref SubnetAPPB
-    Export:
-      Name: psd-vpc1-subnet-appb
-  psdvpc1subnetappc:
-    Description: PSD VPC1 SubnetAPPC
-    Value: !Ref SubnetAPPC
-    Export:
-      Name: psd-vpc1-subnet-appc
-  psdvpc1subnetdba:
-    Description: PSD VPC1 SubnetDBA
-    Value: !Ref SubnetDBA
-    Export:
-      Name: psd-vpc1-subnet-dba
-  psdvpc1subnetdbb:
-    Description: PSD VPC1 SubnetDBB
-    Value: !Ref SubnetDBB
-    Export:
-      Name: psd-vpc1-subnet-dbb
-  psdvpc1subnetdbc:
-    Description: PSD VPC1 SubnetDBC
-    Value: !Ref SubnetDBC
-    Export:
-      Name: psd-vpc1-subnet-dbc
-  psdvpc1subnetreserveda:
-    Description: PSD VPC1 SubnetReservedA
-    Value: !Ref SubnetReservedA
-    Export:
-      Name: psd-vpc1-subnet-reserveda
-  psdvpc1subnetreservedb:
-    Description: PSD VPC1 SubnetReservedB
-    Value: !Ref SubnetReservedB
-    Export:
-      Name: psd-vpc1-subnet-reservedb
-  psdvpc1subnetreservedc:
-    Description: PSD VPC1 SubnetReservedC
-    Value: !Ref SubnetReservedC
-    Export:
-      Name: psd-vpc1-subnet-reservedc
-  psdvpc1defaultinstancesg:
-    Description: PSD VPC1 Default Instance SecurityGroup
-    Value: !Ref D
+      VpcId: !Ref VPC
+      GroupDescription: Control access to Database
+      SecurityGroupIngress: 
+        - Description: 'Allow MySQL IN'
+          IpProtocol: tcp
+          FromPort: '3306'
+          ToPort: '3306'
+          SourceSecurityGroupId: !Ref SGWordpress
+  SGLoadBalancer:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Control access to Load Balancer
+      SecurityGroupIngress: 
+        - Description: 'Allow HTTP IPv4 IN'
+          IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+  SGEFS:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Control access to EFS
+      SecurityGroupIngress: 
+        - Description: 'Allow NFS/EFS IPv4 IN'
+          IpProtocol: tcp
+          FromPort: '2049'
+          ToPort: '2049'
+          SourceSecurityGroupId: !Ref SGWordpress
+  WordpressRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonElasticFileSystemClientFullAccess
+  WordpressInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref WordpressRole

@@ -1,0 +1,14 @@
+
+UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          yum -y update
+          yum -y upgrade
+          # simulate some other processes here
+          sleep 300
+          # Continue
+          yum install -y httpd
+          systemctl enable httpd
+          systemctl start httpd
+          echo "<html><head><title>Amazing test page</title></head><body><h1><center> Test page with User Data</center></h1></body></html>" > /var/www/html/index.html

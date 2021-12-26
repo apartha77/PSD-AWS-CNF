@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Template to Create an EC2 instance in a VPC & Subnet specified & Install ADS & MGN Agents. 
+Need to provide access key and secrect access key as parameter for the ADS agent to install. Similarly another set for MGN Agent to install
+Error - Could not take the parameter value dynamically #!sudo python3 aws-replication-installer-init.py --region eu-west-1 --aws-access-key-id ${MGNAccessKeyId} --aws-secret-access-key ${MGNSecretAccessKey} --no-prompt"
+Parameters:
+  ImageId:
+    Type: String
+    Description: 'Linux 2 AMI for Ireland us-east1 Region'
+    Default: 'ami-01cc34ab2709337aa'
+  VMName:
+    Type: String
+    Description: 'Name of VM'
+    Default: 'TestVMatSource'
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC id - Provide the VPC ID of your choice
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet in which to launch an EC2 - provide the subnet of your choice in the VPC
+  AvailabilityZone:
+    Type: String
+    Description: Availability Zone into which instance will launch - Should match the AZ and the AMI Id
+    Default: us-east-1a
+  InstanceType:
+    Type: String
+    Description: Choosing t2 micro because it is free
+    Default: t2.micro
+  KeyName:
+    Description: SSH Keypair to login to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair. Create the key prior to the stack creation
+  ADSAccessKeyId:
+    Description: Provide Accesskey - Is required for the ADS Agent Installation
+    Type: String
+  ADSSecretAccessKey:
+    Description: Provide Secret -  Is required for the ADS Agent Installation
+    Type: String
+  MGNAccessKeyId:
+    Description: Provide Accesskey - Is required for the MGN Agent Installation
+    Type: String
+  MGNSecretAccessKey:
+    Description: Provide Secret -  Is required for the MGN Agent Installation
+    Type: String
+
+
+Resources:
+  SourceInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties: 
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      AvailabilityZone: !Ref AvailabilityZone
+      KeyName: !Ref KeyName
+      SecurityGroupIds: 
+        - !Ref SourceSecurityGroup
+      SubnetId: !Ref SubnetId
+      Tags:
+      - Key: Name
+        Value: !Ref VMName
+      UserData:
+        Fn::Base64: !Sub |
+            #!/bin/bash
+            yum update -y
+            systemctl start httpd.service
+            curl -o ./aws-discovery-agent.tar.gz https://s3-us-west-2.amazonaws.com/aws-discovery-agent.us-west-2/linux/latest/aws-discovery-agent.tar.gz
+            tar -xzf aws-discovery-agent.tar.gz
+            sudo bash install -r "eu-west-1" -k ${ADSAccessKeyId} -s ${ADSSecretAccessKey}
+            wget -O ./aws-replication-installer-init.py https://aws-application-migration-service-eu-west-1.s3.amazonaws.com/latest/linux/aws-replication-installer-init.py
+            #!sudo python3 aws-replication-installer-init.py --region eu-west-1 --aws-access-key-id ${MGNAccessKeyId} --aws-secret-access-key ${MGNSecretAccessKey} --no-prompt 
+
+  SourceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: SG to allow SSH access via port 22, 443, 1500
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0' 
+        - IpProtocol: tcp
+          FromPort: '1500'
+          ToPort: '1500'
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: Name
+          Value: SG-SSHnADS-Ports-anyIP
+
+Outputs:
+  SourceInstanceId:
+    Description: Instance Id 
+    Value: !Ref SourceInstance
